@@ -1,34 +1,65 @@
-import React, { Component } from 'react'
-import { data } from '../fakedata.js'
+import React, { Component, useEffect, useReducer, useState } from 'react';
+// import { data } from '../fakedata.js';
+import axios from "axios";
+import * as actions from "./actions.js";
+import { Link } from "react-router-dom";
 
-export default class allProducts extends Component {
-    // constructor(props){
-    //     super(props);
-    //     this.state={
-    //         products:[],
-    //     }
-    // }
-    // componentDidMount(){
-    //     this.setState({
-    //         products:[...this.products,data],
-    //     })
-    // }
-    render() {
-        return (
-            <div className='container'>
-                {data.map(product => (
-
-                    <div className="card">
-                        <img src="..." className="card-img-top" alt="..." />
-                        <div className="card-body">
-                            <h5 className="card-title">{product.title}</h5>
-                            <p className="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
-                            <a href="#" className="btn btn-primary">Go somewhere</a>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-        )
+const reducer = (state, action) => {
+    switch (action.type) {
+        case actions.FETCH:
+            return { ...state, loading: true };
+        case actions.SUCCESS:
+            return { ...state, loading: false, products: action.payload };
+        case actions.FAIL:
+            return { ...state, loading: false, error: action.payload };
+        default:
+            return { ...state };
     }
+}
+
+export default function AllProducts() {
+    // const [products,setProducts]=useState([]);
+    const [{ loading, error, products }, dispatch] = useReducer(reducer, {
+        products: [],
+        loading: true,
+        error: "",
+    })
+    useEffect(() => {
+        dispatch({ type: actions.FETCH });
+        const fetchData = async () => {
+            try {
+                const result = await axios.get("/api/products");
+                // setProducts(result.data);
+                dispatch({ type: actions.SUCCESS, payload: result.data })
+            }
+            catch (err) {
+                dispatch({ type: actions.FAIL, payload: err.message });
+            }
+        }
+        fetchData();
+    }, []);
+    return (
+        <div className='container '>
+            {
+                loading === true ? <div>...Loading</div> :
+                    error ? <div class="alert alert-danger" role="alert">
+                        {error}
+                    </div> :
+                        products.map(product => (
+                            <div className="card d-inline-flex col-3 flex-fill my-3 mx-0" style={{ height: "10 px", marginLeft: "5px" }} key={product.id}>
+                                <a href={`/product/${product.id}`}>
+                                    <img src={product.image} className="card-img-top" alt="..." height={300} />
+                                </a>
+                                <div className="card-body">
+                                    <a href={`/product/${product.id}`}>
+                                        <h5 className="card-title">{product.title}</h5>
+                                    </a>
+                                    <p className="card-text">{(product.description.length < 250) ? product.description : product.description.slice(0, 250) + "...more"}</p>
+                                    <a href="#" className="btn btn-warning">Add to cart</a>
+                                </div>
+                            </div>
+                        ))}
+        </div>
+
+    )
 }
